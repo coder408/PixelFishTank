@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pixel Fish Tank 🐠 - Demo</title>
+  <style>
+    :root{
+      --ui-bg: #0b1221;
+      --panel-bg: rgba(255,255,255,0.06);
+      --accent: #4fd1c5;
+      --glass: rgba(255,255,255,0.03);
+      --text: #e6eef6;
+      --muted: #99a4b3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071226 0%, #081827 60%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+    .app {
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      gap:12px;
+      padding:16px;
+      color:var(--text);
+    }
+
+    header {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    h1{
+      font-size:18px;
+      margin:0;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .controls {
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      background:var(--panel-bg);
+      padding:8px;
+      border-radius:10px;
+      box-shadow:0 4px 18px rgba(2,6,23,0.5);
+    }
+    .controls > *{color:var(--text); background:transparent; border:0; outline:0; font-size:14px}
+    button.btn{
+      padding:8px 12px;
+      border-radius:8px;
+      background:linear-gradient(180deg,#123246,#0f2b40);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,0.04);
+      cursor:pointer;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+    button.btn.ghost{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+    }
+    .panel {
+      display:flex;
+      gap:16px;
+      align-items:center;
+      padding:10px;
+      border-radius:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .slider {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    label, select {font-size:13px;color:var(--muted)}
+    main {
+      flex:1;
+      display:flex;
+      gap:12px;
+      align-items:stretch;
+    }
+    .tank-wrap{
+      flex:1;
+      background:var(--glass);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:stretch;
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+    }
+    canvas{
+      width:100%;
+      height:100%;
+      background:linear-gradient(#071a2a, #04202f 60%);
+      border-radius:8px;
+      image-rendering: pixelated;
+      display:block;
+    }
+    .right-panel{
+      width:260px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:12px;
+      border-radius:12px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .stat{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-weight:600;
+      color:var(--text);
+      font-size:14px;
+    }
+
+    footer{font-size:12px;color:var(--muted); text-align:center; padding:6px 0;}
+    a{color:var(--accent); text-decoration:none}
+    @media (max-width:880px){
+      .right-panel{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Pixel Fish Tank <span style="font-size:16px">🐠✨</span></h1>
+
+      <div class="controls panel" role="toolbar" aria-label="controls">
+        <button id="addBtn" class="btn">➕ Add Fish</button>
+        <button id="clearBtn" class="btn ghost">🧹 Clear</button>
+        <button id="pauseBtn" class="btn">⏯️ Pause</button>
+
+        <div class="slider" title="Global speed">
+          <label for="speed">⚡</label>
+          <input id="speed" type="range" min="0" max="300" value="100" style="width:110px">
+        </div>
+
+        <select id="theme" aria-label="Theme selector">
+          <option value="ocean">🌊 Ocean</option>
+          <option value="night">🌃 Night</option>
+          <option value="pastel">🌸 Pastel</option>
+          <option value="space">🚀 Space</option>
+        </select>
+      </div>
+    </header>
+
+    <main>
+      <div class="tank-wrap">
+        <div class="panel" style="justify-content:space-between; align-items:center;">
+          <div style="font-size:13px;color:var(--muted)">Click the tank to add a fish where you click 🐟</div>
+          <div class="stat">Fish: <span id="fishCount">0</span></div>
+        </div>
+
+        <div style="flex:1; min-height:280px; display:flex; align-items:stretch;">
+          <canvas id="tank"></canvas>
+        </div>
+
+        <div class="panel" style="justify-content:space-between; font-size:13px;color:var(--muted)">
+          <div>Pixel scale</div>
+          <div>
+            <button id="scaleDown" class="btn ghost">➖</button>
+            <button id="scaleUp" class="btn" style="margin-left:6px">➕</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="right-panel">
+        <div class="card">
+          <div style="font-weight:700;color:var(--text);margin-bottom:8px">Quick Tips ✨</div>
+          <ul style="margin:0;padding-left:18px;line-height:1.6">
+            <li>Click to add fish where you click 🖱️</li>
+            <li>Use Speed slider to slow down or zoom past time 🐢⚡</li>
+            <li>Turn off smoothing for crisp pixels — already enabled 🎯</li>
+            <li>Press "Add Fish" for random spawns ➕</li>
+          </ul>
+        </div>
+
+        <div class="card" id="about">
+          <div style="font-weight:700;color:var(--text);margin-bottom:8px">About</div>
+          <div>Small demo tank implemented with canvas. Pixel-style fish are generated procedurally — no external assets required. ❤️</div>
+        </div>
+
+        <div class="card" style="text-align:center">
+          <div style="font-size:12px;color:var(--muted)">Made with <span style="color:#ff6b6b">❤</span> by coder408</div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>Want this file added to your repo? I can open a PR with it 🐠✨</footer>
+  </div>
+
+  <script>
+  // Pixel Fish Tank - single-file demo
+  (function(){
+    const canvas = document.getElementById('tank');
+    const ctx = canvas.getContext('2d',{alpha:false});
+    // High-DPI backing store
+    let DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    // Pixel rendering scale of each "pixel" in the sprite
+    let pixelSize = 4;
+
+    // UI elements
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const speedSlider = document.getElementById('speed');
+    const fishCountEl = document.getElementById('fishCount');
+    const themeSelect = document.getElementById('theme');
+    const scaleUp = document.getElementById('scaleUp');
+    const scaleDown = document.getElementById('scaleDown');
+
+    // State
+    let running = true;
+    let last = performance.now();
+    let fishes = [];
+    let speedMultiplier = 1.0;
+    let theme = 'ocean';
+
+    // Fish sprite cache (keyed by color+dir)
+    const spriteCache = new Map();
+
+    // Default fish palette
+    const palettes = {
+      ocean: ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#9B5DE5'],
+      night: ['#F8AFA6','#FFD6A5','#BDE0FE','#CDB4DB','#A2D2FF'],
+      pastel: ['#FF9AA2','#FFB7B2','#FFDAC1','#E2F0CB','#B5EAD7'],
+      space: ['#00F5D4','#7B2CBF','#FF006E','#FFD60A','#5FD068']
+    };
+
+    // Utility
+    function rand(min, max){ return Math.random()*(max-min)+min; }
+    function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
+
+    // Resize canvas to container
+    function resize(){
+      const rect = canvas.getBoundingClientRect();
+      DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+      canvas.width = Math.floor(rect.width * DPR);
+      canvas.height = Math.floor(rect.height * DPR);
+      // use pixelated rendering
+      ctx.imageSmoothingEnabled = false;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Pixel sprite generator: 8x5 "pixels" pattern (modifiable)
+    function createFishSprite(color, flip=false){
+      const key = color + '|' + flip + '|' + pixelSize;
+      if(spriteCache.has(key)) return spriteCache.get(key);
+
+      const pxW = 8, pxH = 5;
+      const off = document.createElement('canvas');
+      off.width = pxW * pixelSize * DPR;
+      off.height = pxH * pixelSize * DPR;
+      const octx = off.getContext('2d');
+      octx.imageSmoothingEnabled = false;
+
+      // simple fish pixel pattern matrix (1 = body, 2 = eye)
+      const pattern = [
+        [0,0,1,1,1,1,0,0],
+        [0,1,1,1,1,1,1,0],
+        [1,1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,1,0],
+        [0,0,1,1,1,1,0,0]
+      ];
+      // draw body
+      octx.fillStyle = color;
+      for(let y=0;y<pxH;y++){
+        for(let x=0;x<pxW;x++){
+          if(pattern[y][x]===1){
+            const rx = flip ? (pxW - 1 - x) : x;
+            octx.fillRect(rx * pixelSize * DPR, y * pixelSize * DPR, pixelSize * DPR, pixelSize * DPR);
+          }
+        }
+      }
+      // draw eye (white then black)
+      const eyeX = flip ? 1 : (pxW - 2);
+      const eyeY = 2;
+      octx.fillStyle = '#ffffff';
+      octx.fillRect(eyeX * pixelSize * DPR, eyeY * pixelSize * DPR, pixelSize * DPR, pixelSize * DPR);
+      octx.fillStyle = '#000000';
+      octx.fillRect(eyeX * pixelSize * DPR, eyeY * pixelSize * DPR, Math.max(1, Math.floor(pixelSize * DPR/2)), Math.max(1, Math.floor(pixelSize * DPR/2)));
+
+      spriteCache.set(key, off);
+      return off;
+    }
+
+    // Fish constructor
+    function spawnFish(x,y,color){
+      const angle = rand(0, Math.PI*2);
+      const speed = rand(20, 80); // px/sec base
+      const size = Math.round(rand(0.7,1.4)); // scale factor
+      const fish = {
+        x:x || rand(40, canvas.width/DPR - 40),
+        y:y || rand(40, canvas.height/DPR - 40),
+        vx: Math.cos(angle)*speed,
+        vy: Math.sin(angle)*speed,
+        speedBase: speed,
+        size: size,
+        color: color || pickColor(),
+        wiggle: rand(0,Math.PI*2),
+        wiggleSpeed: rand(1,3),
+        flip: Math.random() < 0.5
+      };
+      fishes.push(fish);
+      updateFishCount();
+      return fish;
+    }
+    function pickColor(){
+      const arr = palettes[theme] || palettes.ocean;
+      return arr[Math.floor(rand(0, arr.length))];
+    }
+
+    // Simple separation behavior to avoid overlap
+    function applySeparation(f, dt){
+      const desiredSeparation = 18 * f.size;
+      let ax=0, ay=0;
+      for(let i=0;i<fishes.length;i++){
+        const o = fishes[i];
+        if(o===f) continue;
+        const dx = o.x - f.x;
+        const dy = o.y - f.y;
+        const d2 = dx*dx + dy*dy;
+        if(d2 < desiredSeparation*desiredSeparation && d2 > 0.0001){
+          const d = Math.sqrt(d2);
+          const push = (desiredSeparation - d) / desiredSeparation;
+          ax -= (dx/d) * push * 80;
+          ay -= (dy/d) * push * 80;
+        }
+      }
+      // apply acceleration to velocity
+      f.vx += ax * dt;
+      f.vy += ay * dt;
+    }
+
+    // Update & render loop
+    function updateAndDraw(now){
+      const dt = Math.max(0, (now - last) / 1000) * (speedMultiplier);
+      last = now;
+
+      // clear to themed background
+      drawBackground();
+
+      // update fish
+      for(let i=0;i<fishes.length;i++){
+        const f = fishes[i];
+
+        // separation steering
+        applySeparation(f, dt);
+
+        // update position
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+
+        // simple bounds bounce with a small padding
+        const w = canvas.width / DPR, h = canvas.height / DPR;
+        const padding = 12;
+        if(f.x < padding){ f.x = padding; f.vx = Math.abs(f.vx); f.flip = false; }
+        if(f.x > w - padding){ f.x = w - padding; f.vx = -Math.abs(f.vx); f.flip = true; }
+        if(f.y < padding){ f.y = padding; f.vy = Math.abs(f.vy); }
+        if(f.y > h - padding){ f.y = h - padding; f.vy = -Math.abs(f.vy); }
+
+        // slight swim wobble
+        f.wiggle += f.wiggleSpeed * dt * 6;
+        const wig = Math.sin(f.wiggle) * 0.6;
+        // apply wiggle to velocity to make nicer motion
+        f.vx += wig * 2 * dt;
+
+        // friction to keep speeds in check
+        const v = Math.hypot(f.vx, f.vy);
+        const desired = f.speedBase;
+        if(v > desired * 1.6){
+          f.vx *= 0.98;
+          f.vy *= 0.98;
+        }
+
+        // draw fish
+        drawFish(f);
+      }
+
+      // next frame
+      if(running) requestAnimationFrame(updateAndDraw);
+    }
+
+    // Draw themed background
+    function drawBackground(){
+      const w = canvas.width, h = canvas.height;
+      // simple gradient themes
+      const g = ctx.createLinearGradient(0,0,0,h);
+      if(theme === 'ocean'){
+        g.addColorStop(0, '#072033');
+        g.addColorStop(1, '#022227');
+      } else if(theme === 'night'){
+        g.addColorStop(0, '#0b1230');
+        g.addColorStop(1, '#051321');
+      } else if(theme === 'pastel'){
+        g.addColorStop(0, '#fbe8f7');
+        g.addColorStop(1, '#dff5ff');
+      } else if(theme === 'space'){
+        g.addColorStop(0, '#030215');
+        g.addColorStop(1, '#07102a');
+      } else {
+        g.addColorStop(0, '#071226');
+        g.addColorStop(1, '#04202f');
+      }
+
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+
+      // optional subtle vignette
+      const vign = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)/4, w/2,h/2, Math.max(w,h));
+      vign.addColorStop(0, 'rgba(255,255,255,0.02)');
+      vign.addColorStop(1, 'rgba(0,0,0,0.25)');
+      ctx.fillStyle = vign;
+      ctx.fillRect(0,0,w,h);
+    }
+
+    // Draw a single fish (using sprite scaled to pixelSize)
+    function drawFish(f){
+      const sprite = createFishSprite(f.color, f.flip);
+      // sprite is pxW*pixelSize*DPR wide - draw scaled by f.size and DPR
+      const sx = sprite.width, sy = sprite.height;
+      // compute destination size in canvas pixels (device pixels)
+      const drawW = sx * f.size;
+      const drawH = sy * f.size;
+      // convert logical position to device pixels
+      const dx = Math.round(f.x * DPR - (drawW/2));
+      const dy = Math.round(f.y * DPR - (drawH/2));
+      ctx.drawImage(sprite, 0, 0, sx, sy, dx, dy, drawW, drawH);
+    }
+
+    // UI helpers
+    function updateFishCount(){
+      fishCountEl.textContent = fishes.length;
+    }
+    addBtn.addEventListener('click', ()=> {
+      // spawn 3 fish for fun
+      for(let i=0;i<3;i++) spawnFish(null,null);
+    });
+    clearBtn.addEventListener('click', ()=> {
+      fishes.length = 0;
+      updateFishCount();
+    });
+    pauseBtn.addEventListener('click', ()=>{
+      running = !running;
+      pauseBtn.textContent = running ? '⏯️ Pause' : '▶️ Resume';
+      if(running){
+        last = performance.now();
+        requestAnimationFrame(updateAndDraw);
+      }
+    });
+
+    speedSlider.addEventListener('input', (e)=>{
+      const v = parseFloat(e.target.value);
+      // map [0,300] => [0.2, 2.5] multiplier
+      speedMultiplier = Math.max(0.05, (v/100));
+    });
+
+    themeSelect.addEventListener('change', (e)=>{
+      theme = e.target.value;
+      // reset palette cache
+      spriteCache.clear();
+      // recolor existing fish to palette variants
+      fishes.forEach(f => f.color = pickColor());
+    });
+
+    // allow click-to-spawn
+    canvas.addEventListener('click', (ev)=>{
+      const r = canvas.getBoundingClientRect();
+      const x = (ev.clientX - r.left) * DPR / DPR;
+      const y = (ev.clientY - r.top) * DPR / DPR;
+      spawnFish(x,y);
+    });
+
+    // pixel scaling controls
+    scaleUp.addEventListener('click', ()=>{
+      pixelSize = Math.min(12, pixelSize + 1);
+      spriteCache.clear();
+    });
+    scaleDown.addEventListener('click', ()=>{
+      pixelSize = Math.max(1, pixelSize - 1);
+      spriteCache.clear();
+    });
+
+    // spawn some starter fish
+    for(let i=0;i<8;i++) spawnFish();
+
+    // start loop
+    last = performance.now();
+    requestAnimationFrame(updateAndDraw);
+
+    // keep canvas resized correctly on first layout
+    setTimeout(resize, 50);
+
+    // expose for debugging (optional)
+    window._PixelTank = {
+      fishes, spawnFish, setSpeed: (v)=>{ speedMultiplier = v; speedSlider.value = v*100; }
+    };
+  })();
+  </script>
+</body>
+</html>
